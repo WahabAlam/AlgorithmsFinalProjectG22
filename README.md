@@ -67,55 +67,35 @@ Trains LinearRegression and evaluates:
 
 ## Results
 
-### Run A — Threshold = 0.6 (as per rubric)
+### Run A — Threshold = **0.6** (as per rubric)
+*(On this scale, 0.6 makes all samples “healthy,” so classification is trivial; regression metrics still valid.)*
 
-(On this scale, 0.6 places all samples in “healthy,” so classification is trivial; regression metrics still valid.)
+**Target:** `Pack_SOH`
 
-Target: Pack_SOH
+**Regression metrics**
+| R² | MSE | RMSE | MAE | 5-fold CV R² (mean ± std) |
+|---:|---:|---:|---:|:---------------------------|
+| 0.9955008017572972 | 7.569849604207866e-05 | 0.008700488264579101 | 0.006860438851389045 | 0.9955681761312537 ± 0.00039375949931226583 |
 
-Test R²: 0.9955008017572972
+**Classification (≥ 0.6 = healthy)**
+| Accuracy | Confusion [tn, fp; fn, tp] | Test class counts (healthy / problem) |
+|---:|:-------------------------------:|:-------------------------------------:|
+| 1.0 | [0, 0; 0, 134] | 134 / 0 |
 
-MSE: 7.569849604207866e-05
 
-RMSE: 0.008700488264579101
+### Run B — Threshold = **3.8** (meaningful split on ~3.5–4.0 scale)
 
-MAE: 0.006860438851389045
+**Target:** `Pack_SOH`
 
-5-fold CV R² (train): mean 0.9955681761312537, std 0.00039375949931226583
+**Regression metrics**
+| R² | MSE | RMSE | MAE | 5-fold CV R² (mean ± std) |
+|---:|---:|---:|---:|:---------------------------|
+| 0.9951298763523511 | 7.758755632286618e-05 | 0.008808379892061092 | 0.006817631771606307 | 0.9955606537573507 ± 0.0004702138555643102 |
 
-Classification (≥ 0.6 = healthy):
-
-Accuracy: 1.0
-
-Confusion matrix [tn, fp; fn, tp] = [0, 0; 0, 134]
-
-Test class counts — healthy: 134, problem: 0
-
-Features used: numeric = No., Qn, Q, Pt, SOC, SOE; categorical = Mat, ID.
-
-### Run B — Threshold = 3.8 (meaningful split on ~3.5–4.0 scale)
-
-Target: Pack_SOH
-
-Test R²: 0.9951298763523511
-
-MSE: 7.758755632286618e-05
-
-RMSE: 0.008808379892061092
-
-MAE: 0.006817631771606307
-
-5-fold CV R² (train): mean 0.9955606537573507, std 0.0004702138555643102
-
-Classification (≥ 3.8 = healthy):
-
-Accuracy: 0.9850746268656716
-
-Confusion matrix [tn, fp; fn, tp] = [94, 0; 2, 38]
-
-Test class counts — healthy: 40, problem: 94
-
-Features used: numeric = No., Qn, Q, Pt, SOC, SOE; categorical = Mat, ID.
+**Classification (≥ 3.8 = healthy)**
+| Accuracy | Confusion [tn, fp; fn, tp] | Test class counts (healthy / problem) |
+|---:|:-------------------------------:|:-------------------------------------:|
+| 0.9850746268656716 | [94, 0; 2, 38] | 40 / 94 |
 
 ## Notes for the TA
 
