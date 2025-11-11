@@ -1,0 +1,33 @@
+{
+  "target": "Pack_SOH",
+  "r2": 0.9955008017572972,
+  "mse": 7.569849604207866e-05,
+  "rmse": 0.008700488264579101,
+  "mae": 0.006860438851389045,
+  "cv_r2_mean": 0.9955681761312537,
+  "cv_r2_std": 0.00039375949931226583,
+  "threshold": 0.6,
+  "clf_accuracy": 1.0,
+  "confusion_matrix": {
+    "tn": 0,
+    "fp": 0,
+    "fn": 0,
+    "tp": 134
+  },
+  "numeric_columns": [
+    "No.",
+    "Qn",
+    "Q",
+    "Pt",
+    "SOC",
+    "SOE"
+  ],
+  "categorical_columns": [
+    "Mat",
+    "ID"
+  ],
+  "test_class_counts": {
+    "healthy": 134,
+    "problem": 0
+  }
+}
