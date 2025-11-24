@@ -1,0 +1,26 @@
+# --- Python / venv ---
+.venv/
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.db
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.code-workspace
+
+# --- Streamlit / cache ---
+.streamlit/
+*.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Secrets / local config ---
+.env
