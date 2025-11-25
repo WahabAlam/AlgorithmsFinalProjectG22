@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
     .env is ignored by Git (see .gitignore), so your key is not pushed to GitHub.
 
-🧠 2. Training the Linear Regression Model
+## 🧠 2. Training the Linear Regression Model
 
 If models/linreg_soh.pkl and models/test_metrics.json already exist, you don’t have to retrain.
 If you want to retrain from the CSV:
@@ -80,26 +80,25 @@ python train_linear.py \
 ```
 
 This script:
-
-    Loads final_project_preprocessed_data.csv
-    Strips column names and safely finds the target column
-    Removes potential label leakage:
-        Drops SOH if predicting Pack_SOH, and vice versa
-        If target is Pack_SOH, also drops U1–U21 because they’re directly averaged into Pack_SOH
-    Builds a Pipeline:
-        ColumnTransformer
-            StandardScaler for numeric columns
-            OneHotEncoder for categorical columns
-        LinearRegression model
-    Splits data into train/test (80/20 by default), stratified by a health threshold
-    Computes regression metrics:
-        R²
-        MSE / RMSE
-        MAE
-        5-fold CV R² on training data
-    Converts predictions into Healthy / Problem using the threshold and computes:
-        Confusion matrix
-        Classification accuracy
+- Loads final_project_preprocessed_data.csv
+- Strips column names and safely finds the target column
+- Removes potential label leakage:
+    * Drops SOH if predicting Pack_SOH, and vice versa
+    * If target is Pack_SOH, also drops U1–U21 because they’re directly averaged into Pack_SOH
+- Builds a Pipeline:
+    * ColumnTransformer
+        * StandardScaler for numeric columns
+        * OneHotEncoder for categorical columns
+    * LinearRegression model
+- Splits data into train/test (80/20 by default), stratified by a health threshold
+- Computes regression metrics:
+    * R²
+    * MSE / RMSE
+    * MAE
+    * 5-fold CV R² on training data
+- Converts predictions into Healthy / Problem using the threshold and computes:
+    * Confusion matrix
+    * Classification accuracy
 
 It then saves:
     models/linreg_soh.pkl – the trained pipeline
