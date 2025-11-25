@@ -100,10 +100,10 @@ This script:
     * Confusion matrix
     * Classification accuracy
 
-It then saves:
-    models/linreg_soh.pkl – the trained pipeline
-    models/test_metrics.json – all key metrics + column lists
-    figs/pred_vs_actual.png – Predicted vs Actual Pack_SOH plot
+- It then saves:
+    * models/linreg_soh.pkl – the trained pipeline
+    * models/test_metrics.json – all key metrics + column lists
+    * figs/pred_vs_actual.png – Predicted vs Actual Pack_SOH plot
 
 ## 🖥 3. Running the Streamlit App
 
@@ -112,41 +112,39 @@ Once dependencies and .env are set up:
 ```text
 streamlit run app.py
 ```
-
 A browser window will open (usually at http://localhost:8501).
-
 The app has **two main tabs**:
 
 ## 📊 4. Dashboard Tab – SOH Prediction & Visualization
 Tab: 📊 Dashboard
 
 🔍 Predict Battery Pack SOH
-    Click “Check Battery SOH”.
-    The app:
-        1. Loads final_project_preprocessed_data.csv
-        2. Drops the target column Pack_SOH and any U1..U21 columns (to match the training setup)
-        3. Samples one row (simulating a new measurement from a battery pack)
-        4. Passes it through linreg_soh.pkl to get a predicted Pack SOH
-        5. Compares the prediction to the current threshold (slider in the sidebar)
-    The result is shown as:
-        🟢 Predicted SOH: X.XX — The Battery is Healthy
-        🔴 Predicted SOH: X.XX — The Battery has a Problem
-    A progress bar shows SOH scaled to a 0–5 nominal range.
+- Click “Check Battery SOH”.
+- The app:
+    1. Loads final_project_preprocessed_data.csv
+    2. Drops the target column Pack_SOH and any U1..U21 columns (to match the training setup)
+    3. Samples one row (simulating a new measurement from a battery pack)
+    4. Passes it through linreg_soh.pkl to get a predicted Pack SOH
+    5. Compares the prediction to the current threshold (slider in the sidebar)
+- The result is shown as:
+    + 🟢 Predicted SOH: X.XX — The Battery is Healthy
+    + 🔴 Predicted SOH: X.XX — The Battery has a Problem
+- A progress bar shows SOH scaled to a 0–5 nominal range.
 
 📉 SOH Trend (Last Predictions)
-    Every time you click “Check Battery SOH”, the app stores:
-        time of prediction
-        predicted SOH
-        Healthy / Problem status
-    The last 10 predictions are plotted as a line chart vs.
-    Prediction Attempt (1, 2, 3, …), with a red dashed line at the current threshold.
+- Every time you click “Check Battery SOH”, the app stores:
+    * time of prediction
+    * predicted SOH
+    * Healthy / Problem status
+- The last 10 predictions are plotted as a line chart vs. Prediction Attempt (1, 2, 3, …), with a red dashed line at the current threshold.
+
 This gives a quick sense of how predicted SOH is trending across multiple checks.
 
 📋 Data preview & CSV export
-    A small table shows the last few predictions (attempt, time, SOH, status).
-    A “Download All Predictions as CSV” button exports the full history to battery_predictions.csv.
+- A small table shows the last few predictions (attempt, time, SOH, status).
+- A “Download All Predictions as CSV” button exports the full history to battery_predictions.csv.
 🧹 Clearing history
-    “Clear Prediction History” wipes the stored predictions and refreshes the dashboard.
+- **“Clear Prediction History”** wipes the stored predictions and refreshes the dashboard.
 
 ## 🤖 5. Chatbot Tab – Gemini Battery Assistant
 Tab: 🤖 Chatbot
