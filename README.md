@@ -143,26 +143,26 @@ This gives a quick sense of how predicted SOH is trending across multiple checks
 📋 Data preview & CSV export
 - A small table shows the last few predictions (attempt, time, SOH, status).
 - A “Download All Predictions as CSV” button exports the full history to battery_predictions.csv.
+
 🧹 Clearing history
 - **“Clear Prediction History”** wipes the stored predictions and refreshes the dashboard.
 
 ## 🤖 5. Chatbot Tab – Gemini Battery Assistant
 Tab: 🤖 Chatbot
 This tab lets you chat with a Gemini-powered assistant about:
-    Battery health & SOH
-    Good charging practices
-    Sustainability / recycling of batteries
-    Any related conceptual questions
+* Battery health & SOH
+* Good charging practices
+* Sustainability / recycling of batteries
+* Any related conceptual questions
 
 How it works
-    Chat interface uses Streamlit’s st.chat_message and st.chat_input:
-        Previous messages appear as bubbles
-        Input box stays pinned at the bottom, like a real chat app
-    On each user message:
-
-        The app builds a prompt with a system-style instruction:
-            You are an assistant helping a student explain battery health, State of Health (SOH), and sustainable battery use in simple terms.
-        Sends it to Google Gemini 2.0 Flash:
+- Chat interface uses Streamlit’s st.chat_message and st.chat_input:
+    * Previous messages appear as bubbles
+    * Input box stays pinned at the bottom, like a real chat app
+- On each user message:
+    1. The app builds a prompt with a system-style instruction:
+        You are an assistant helping a student explain battery health, State of Health (SOH), and sustainable battery use in simple terms.
+    2. Sends it to Google Gemini 2.0 Flash:
         ```text
         resp = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -171,29 +171,29 @@ How it works
         answer = resp.text
         ```
 
-        Displays the reply as an assistant message.
-    “Clear Chat History” wipes the stored conversation and reruns the tab.
+    3. Displays the reply as an assistant message.
+- “Clear Chat History” wipes the stored conversation and reruns the tab.
 
 ## 🧩 6. How This Could Be Used in Real Life
 In this project, predictions are made by sampling rows from the historical dataset.
+
 In a real-world deployment:
-    The input features would come from a Battery Management System (BMS):
-        pack/cell voltages, currents, temperatures,
-        cycle count, time in service, etc.
-    The same trained pipeline would run on each new measurement to estimate current SOH.
-    The dashboard could be part of:
-        an EV or e-bike fleet maintenance portal,
-        a stationary storage monitoring system, or
-        a recycling / second-life screening tool.
-The current Streamlit app demonstrates the full pipeline:
-**preprocessed measurements → ML model → SOH estimate → health classification → UX + explanations.**
+- The input features would come from a Battery Management System (BMS):
+    * pack/cell voltages, currents, temperatures,
+    * cycle count, time in service, etc.
+- The same trained pipeline would run on each new measurement to estimate current SOH.
+- The dashboard could be part of:
+    * an EV or e-bike fleet maintenance portal,
+    * a stationary storage monitoring system, or
+    * a recycling / second-life screening tool.
+The current Streamlit app demonstrates the full pipeline: **preprocessed measurements → ML model → SOH estimate → health classification → UX + explanations.**
 
 ## 🧪 7. Reproducibility Notes
-    The app assumes the presence of:
-        final_project_preprocessed_data.csv
-        models/linreg_soh.pkl
-        models/test_metrics.json
-    If these are missing, run train_linear.py first.
-    To change the health threshold, use:
-        the --threshold flag in train_linear.py, and/or
-        the Threshold slider in the Streamlit sidebar for interactive experiments.
+- The app assumes the presence of:
+    * ```final_project_preprocessed_data.csv```
+    * ```models/linreg_soh.pkl```
+    * ```models/test_metrics.json```
+- If these are missing, run ```train_linear.py``` first.
+- To change the health threshold, use:
+    * the ```--threshold``` flag in ```train_linear.py```, and/or
+    * the **Threshold slider** in the Streamlit sidebar for interactive experiments.
