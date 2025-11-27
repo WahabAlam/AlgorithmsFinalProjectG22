@@ -44,7 +44,7 @@ r2 = metrics.get("r2", 0.0)
 mae = metrics.get("mae", 0.0)
 rmse = metrics.get("rmse", 0.0)
 
-# Optional: feature info (saved by train_linear.py)
+# Optional: feature info saved by train_linear.py
 num_cols = metrics.get("numeric_columns", [])
 cat_cols = metrics.get("categorical_columns", [])
 
@@ -75,9 +75,8 @@ Operational logic in the app:
 - If predicted SOH ≥ {threshold_default:.2f}, the pack is classified as 'Healthy'.
 - If predicted SOH < {threshold_default:.2f}, the pack is classified as 'Problem'.
 
-When users ask about:
-- "the model", "the algorithm", "accuracy", "threshold", or "how this app works",
-you must use the details above in your explanation.
+When users ask about "the model", "the algorithm", "accuracy", "threshold",
+or "how this app works", you must use the details above in your explanation.
 
 You do NOT see raw feature values for individual predictions, but you know the overall design,
 metrics, and the fact that predictions come from preprocessed pack-level inputs (no direct SOH leakage).
@@ -121,10 +120,11 @@ st.markdown(
 )
 st.caption(
     "Use the **Dashboard** to predict battery State of Health (SOH) and visualize trends, "
-    "and the **Chatbot** to ask battery and model-related questions using Google Gemini."
+    "the **Chatbot** to ask battery/model questions using Google Gemini, "
+    "and the **Model Evaluation** tab to inspect performance."
 )
 
-tab_dash, tab_chat = st.tabs(["📊 Dashboard", "🤖 Chatbot"])
+tab_dash, tab_chat, tab_eval = st.tabs(["📊 Dashboard", "🤖 Chatbot", "📈 Model Evaluation"])
 
 # --------------------------------------------------
 # TAB 1 – DASHBOARD
@@ -177,6 +177,28 @@ with tab_dash:
                 "The progress bar is scaled to a nominal SOH range of 0–5. "
                 "Values above the threshold are considered healthy."
             )
+
+            # 🧠 Explain this prediction using the model-aware chatbot
+            if client is not None and st.button("🧠 Explain This Prediction"):
+                explanation_prompt = (
+                    f"The model just predicted an SOH of {soh:.2f}, which is classified as '{status}' "
+                    f"using a threshold of {threshold:.2f}. "
+                    "Explain what this means in simple terms for a non-technical user. "
+                    "Also comment on how reliable this prediction might be, using the model's R², MAE, and RMSE. "
+                    "Do not make up any new numbers; only reason from the metrics you know."
+                )
+
+                try:
+                    resp = client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=MODEL_CONTEXT + "\n\n" + explanation_prompt,
+                    )
+                    explanation = resp.text
+                except Exception as e:
+                    explanation = f"⚠️ Gemini API unavailable: {e}"
+
+                st.info(explanation)
+
         else:
             st.info("Click **Check Battery SOH** to generate a prediction.")
 
@@ -184,10 +206,10 @@ with tab_dash:
         st.markdown("#### ℹ️ About This Model")
         st.write(
             "- **Model**: Linear Regression (Scikit-Learn pipeline)\n"
+            "- **Preprocessing**: StandardScaler for numeric features, OneHotEncoder for categoricals\n"
             f"- **Train/test split**: 80/20\n"
             f"- **R² on test set**: `{r2:.3f}`\n"
-            f"- **Features**: preprocessed pack-level measurements (no direct SOH leakage)\n"
-            "- **Output**: Pack-level SOH, then thresholded into *Healthy* vs *Problem*."
+            "- **Output**: Continuous Pack SOH, then thresholded into *Healthy* vs *Problem*."
         )
 
     st.markdown("---")
@@ -301,3 +323,38 @@ with tab_chat:
         if st.button("🧹 Clear Chat History"):
             st.session_state.messages = []
             st.rerun()
+
+# --------------------------------------------------
+# TAB 3 – MODEL EVALUATION
+# --------------------------------------------------
+with tab_eval:
+    st.subheader("📈 Model Evaluation")
+
+    col_metrics, col_plot = st.columns([1, 2])
+
+    with col_metrics:
+        st.markdown("### 📊 Metrics")
+        st.write(f"**R² (coefficient of determination):** `{r2:.3f}`")
+        st.write(f"**MAE (mean absolute error):** `{mae:.4f}`")
+        st.write(f"**RMSE (root mean squared error):** `{rmse:.4f}`")
+        st.markdown(
+            """
+            - **R²** measures how much of the variation in SOH the model explains.  
+            - **MAE** is the average absolute prediction error (in SOH units).  
+            - **RMSE** penalizes larger errors more strongly than MAE.  
+            """
+        )
+
+    with col_plot:
+        st.markdown("### 📉 Predicted vs Actual Pack SOH")
+        try:
+            st.image("figs/pred_vs_actual.png", use_column_width=True)
+            st.caption(
+                "Each point compares the true Pack_SOH (x-axis) to the model prediction (y-axis). "
+                "Points close to the diagonal line mean good predictions."
+            )
+        except Exception:
+            st.info(
+                "Predicted vs Actual plot not found. "
+                "Re-run `train_linear.py` to generate `figs/pred_vs_actual.png`."
+            )
