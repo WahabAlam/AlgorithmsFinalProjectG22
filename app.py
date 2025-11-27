@@ -40,9 +40,48 @@ with open("models/test_metrics.json") as f:
     metrics = json.load(f)
 
 threshold_default = metrics.get("threshold", 0.6)
-r2 = metrics.get("r2", None)
-mae = metrics.get("mae", None)
-rmse = metrics.get("rmse", None)
+r2 = metrics.get("r2", 0.0)
+mae = metrics.get("mae", 0.0)
+rmse = metrics.get("rmse", 0.0)
+
+# Optional: feature info (saved by train_linear.py)
+num_cols = metrics.get("numeric_columns", [])
+cat_cols = metrics.get("categorical_columns", [])
+
+# -------------------------------
+# 🧠 MODEL CONTEXT FOR CHATBOT
+# -------------------------------
+MODEL_CONTEXT = f"""
+You are part of a Streamlit dashboard that predicts lithium-ion battery pack State of Health (SOH).
+
+The backend ML model is:
+- A scikit-learn Pipeline
+- Preprocessing: ColumnTransformer with StandardScaler for numeric features and OneHotEncoder for categorical features
+- Estimator: LinearRegression
+
+Training setup:
+- Target variable: Pack_SOH (pack-level state of health)
+- Train/test split: 80/20 with stratification on a health threshold
+- Number of numeric features: {len(num_cols)}
+- Number of categorical features: {len(cat_cols)}
+
+Test-set performance:
+- R² = {r2:.3f}
+- MAE = {mae:.4f}
+- RMSE = {rmse:.4f}
+
+Operational logic in the app:
+- The model outputs a continuous SOH value for a pack.
+- If predicted SOH ≥ {threshold_default:.2f}, the pack is classified as 'Healthy'.
+- If predicted SOH < {threshold_default:.2f}, the pack is classified as 'Problem'.
+
+When users ask about:
+- "the model", "the algorithm", "accuracy", "threshold", or "how this app works",
+you must use the details above in your explanation.
+
+You do NOT see raw feature values for individual predictions, but you know the overall design,
+metrics, and the fact that predictions come from preprocessed pack-level inputs (no direct SOH leakage).
+"""
 
 # -------------------------------
 # 🧠 SESSION STATE
@@ -82,7 +121,7 @@ st.markdown(
 )
 st.caption(
     "Use the **Dashboard** to predict battery State of Health (SOH) and visualize trends, "
-    "and the **Chatbot** to ask battery-related questions using Google Gemini."
+    "and the **Chatbot** to ask battery and model-related questions using Google Gemini."
 )
 
 tab_dash, tab_chat = st.tabs(["📊 Dashboard", "🤖 Chatbot"])
@@ -185,7 +224,7 @@ with tab_dash:
             st.markdown("#### ⚙️ History Controls")
             if st.button("🧹 Clear Prediction History"):
                 st.session_state.predictions = []
-                st.rerun()  # 🔁 updated from experimental_rerun
+                st.rerun()
 
             st.markdown("#### 📋 Data Preview")
             st.dataframe(
@@ -211,10 +250,10 @@ with tab_dash:
 # TAB 2 – CHATBOT
 # --------------------------------------------------
 with tab_chat:
-    st.subheader("🤖 Battery & Sustainability Chatbot")
+    st.subheader("🤖 Battery, SOH & Model-Aware Chatbot")
     st.caption(
-        "Ask questions about battery health, SOH, charging practices, or sustainability. "
-        "Responses are generated with Google Gemini."
+        "Ask questions about battery health, SOH, charging practices, sustainability, "
+        "or how this machine learning model and dashboard work."
     )
 
     # Show previous messages
@@ -223,7 +262,7 @@ with tab_chat:
             st.markdown(msg["content"])
 
     # Input pinned at bottom
-    prompt = st.chat_input("Type your question about batteries…")
+    prompt = st.chat_input("Type your question about batteries or the model…")
 
     if prompt:
         # Add user message to history
@@ -237,9 +276,12 @@ with tab_chat:
         else:
             try:
                 system_prompt = (
-                    "You are an assistant helping a student explain battery health, "
-                    "State of Health (SOH), and sustainable battery use in simple terms. "
-                    "Keep answers concise, clear, and non-technical unless asked."
+                    MODEL_CONTEXT
+                    + "\n\nYou are also helping a student explain battery health, "
+                      "State of Health (SOH), and sustainable battery use in simple terms. "
+                      "Keep answers concise, clear, and non-technical unless they ask for more detail. "
+                      "If they ask about the model, its accuracy, or the threshold logic, "
+                      "use the MODEL_CONTEXT details above."
                 )
                 resp = client.models.generate_content(
                     model=GEMINI_MODEL,
@@ -258,4 +300,4 @@ with tab_chat:
     if st.session_state.messages:
         if st.button("🧹 Clear Chat History"):
             st.session_state.messages = []
-            st.rerun()  # 🔁 updated from experimental_rerun
+            st.rerun()
