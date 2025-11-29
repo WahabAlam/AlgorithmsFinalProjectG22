@@ -47,6 +47,43 @@ rmse = metrics.get("rmse", 0.0)
 # Optional: feature info saved by train_linear.py
 num_cols = metrics.get("numeric_columns", [])
 cat_cols = metrics.get("categorical_columns", [])
+target_col = metrics.get("target", "Pack_SOH")
+
+# -------------------------------
+# 📊 DATASET SUMMARY (for chatbot awareness)
+# -------------------------------
+soh_min = soh_max = soh_mean = None
+n_samples = None
+
+try:
+    df_all = pd.read_csv("final_project_preprocessed_data.csv")
+    # Try to find the target column case-insensitively if needed
+    cols_lower = df_all.columns.str.strip().str.lower()
+    target_lower = target_col.strip().lower()
+    if target_lower in set(cols_lower):
+        true_target_col = df_all.columns[cols_lower == target_lower][0]
+    else:
+        true_target_col = target_col  # fallback
+
+    soh_series = df_all[true_target_col].astype(float)
+    soh_min = float(soh_series.min())
+    soh_max = float(soh_series.max())
+    soh_mean = float(soh_series.mean())
+    n_samples = int(soh_series.shape[0])
+except Exception:
+    # If anything fails, we just leave these as None and don't mention them
+    pass
+
+data_context = ""
+if soh_min is not None:
+    data_context = f"""
+Dataset summary (based on the preprocessed CSV used for training/evaluation):
+- Target column: {target_col}
+- Number of samples: {n_samples}
+- Min Pack_SOH ≈ {soh_min:.3f}
+- Max Pack_SOH ≈ {soh_max:.3f}
+- Mean Pack_SOH ≈ {soh_mean:.3f}
+"""
 
 # -------------------------------
 # 🧠 MODEL CONTEXT FOR CHATBOT
@@ -60,7 +97,7 @@ The backend ML model is:
 - Estimator: LinearRegression
 
 Training setup:
-- Target variable: Pack_SOH (pack-level state of health)
+- Target variable: {target_col} (pack-level state of health)
 - Train/test split: 80/20 with stratification on a health threshold
 - Number of numeric features: {len(num_cols)}
 - Number of categorical features: {len(cat_cols)}
@@ -69,6 +106,7 @@ Test-set performance:
 - R² = {r2:.3f}
 - MAE = {mae:.4f}
 - RMSE = {rmse:.4f}
+{data_context}
 
 Operational logic in the app:
 - The model outputs a continuous SOH value for a pack.
@@ -76,10 +114,11 @@ Operational logic in the app:
 - If predicted SOH < {threshold_default:.2f}, the pack is classified as 'Problem'.
 
 When users ask about "the model", "the algorithm", "accuracy", "threshold",
-or "how this app works", you must use the details above in your explanation.
+"how this app works", or statistics like the lowest or highest SOH value in the dataset,
+you must use the details above in your explanation.
 
-You do NOT see raw feature values for individual predictions, but you know the overall design,
-metrics, and the fact that predictions come from preprocessed pack-level inputs (no direct SOH leakage).
+You do NOT see raw feature values for individual predictions by default,
+but the app may pass you specific feature values for the most recent prediction.
 """
 
 # -------------------------------
@@ -89,6 +128,8 @@ if "predictions" not in st.session_state:
     st.session_state.predictions = []  # list of dicts: time, soh, status
 if "messages" not in st.session_state:
     st.session_state.messages = []     # list of {"role": "user"/"assistant", "content": str}
+if "last_input" not in st.session_state:
+    st.session_state.last_input = None  # dict of feature→value for last prediction
 
 # -------------------------------
 # 🎨 SIDEBAR
@@ -137,7 +178,7 @@ with tab_dash:
     with col_left:
         if st.button("🔍 Check Battery SOH", use_container_width=True):
             df = pd.read_csv("final_project_preprocessed_data.csv")
-            X = df.drop(columns=["Pack_SOH"], errors="ignore")
+            X = df.drop(columns=[target_col], errors="ignore")
 
             # Drop U1..U21 if present, to match training
             for col in [f"U{i}" for i in range(1, 22)]:
@@ -146,6 +187,10 @@ with tab_dash:
 
             # Random sample prediction
             row = X.sample(1, random_state=random.randint(0, 9999))
+
+            # Store the raw input values so the chatbot can see them later
+            st.session_state.last_input = row.to_dict(orient="records")[0]
+
             predicted_soh = model.predict(row)[0]
             status = "Healthy" if predicted_soh >= threshold else "Problem"
 
@@ -180,12 +225,23 @@ with tab_dash:
 
             # 🧠 Explain this prediction using the model-aware chatbot
             if client is not None and st.button("🧠 Explain This Prediction"):
+                # Build a human-readable list of the input features
+                feature_text = "Here are the input feature values used for this prediction:\n"
+                if st.session_state.last_input is not None:
+                    for k, v in st.session_state.last_input.items():
+                        feature_text += f"- {k}: {v}\n"
+                else:
+                    feature_text += "- (No feature values available)\n"
+
                 explanation_prompt = (
                     f"The model just predicted an SOH of {soh:.2f}, which is classified as '{status}' "
-                    f"using a threshold of {threshold:.2f}. "
-                    "Explain what this means in simple terms for a non-technical user. "
+                    f"using a threshold of {threshold:.2f}.\n\n"
+                    + feature_text +
+                    "\nExplain what this SOH and status mean in simple terms for a non-technical user. "
+                    "Discuss, in a general way, how some of these features might relate to battery health "
+                    "(for example, high temperature vs low temperature), but do not pretend you know the exact formula. "
                     "Also comment on how reliable this prediction might be, using the model's R², MAE, and RMSE. "
-                    "Do not make up any new numbers; only reason from the metrics you know."
+                    "Do not make up any new numeric values; only use what you were given."
                 )
 
                 try:
@@ -246,6 +302,7 @@ with tab_dash:
             st.markdown("#### ⚙️ History Controls")
             if st.button("🧹 Clear Prediction History"):
                 st.session_state.predictions = []
+                st.session_state.last_input = None
                 st.rerun()
 
             st.markdown("#### 📋 Data Preview")
@@ -292,6 +349,22 @@ with tab_chat:
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # Build optional context about the last prediction + inputs
+        last_pred_context = ""
+        if st.session_state.predictions and st.session_state.last_input is not None:
+            last = st.session_state.predictions[-1]
+            soh_last = last["soh"]
+            status_last = last["status"]
+
+            last_pred_context += (
+                f"\n\nThe dashboard recently made this prediction:\n"
+                f"- Predicted SOH: {soh_last:.2f}\n"
+                f"- Status: {status_last} (threshold = {threshold:.2f})\n"
+                "Input feature values used were:\n"
+            )
+            for k, v in st.session_state.last_input.items():
+                last_pred_context += f"- {k}: {v}\n"
+
         # Generate response
         if client is None:
             answer = "⚠️ Gemini client is not configured. Check your API key."
@@ -299,11 +372,12 @@ with tab_chat:
             try:
                 system_prompt = (
                     MODEL_CONTEXT
+                    + last_pred_context
                     + "\n\nYou are also helping a student explain battery health, "
                       "State of Health (SOH), and sustainable battery use in simple terms. "
                       "Keep answers concise, clear, and non-technical unless they ask for more detail. "
-                      "If they ask about the model, its accuracy, or the threshold logic, "
-                      "use the MODEL_CONTEXT details above."
+                      "If they ask about the model, its accuracy, the last prediction, dataset statistics "
+                      "like min/max SOH, or the threshold logic, use the information above."
                 )
                 resp = client.models.generate_content(
                     model=GEMINI_MODEL,
@@ -337,6 +411,10 @@ with tab_eval:
         st.write(f"**R² (coefficient of determination):** `{r2:.3f}`")
         st.write(f"**MAE (mean absolute error):** `{mae:.4f}`")
         st.write(f"**RMSE (root mean squared error):** `{rmse:.4f}`")
+        if soh_min is not None:
+            st.write(f"**Min Pack_SOH in dataset:** `{soh_min:.3f}`")
+            st.write(f"**Max Pack_SOH in dataset:** `{soh_max:.3f}`")
+            st.write(f"**Mean Pack_SOH in dataset:** `{soh_mean:.3f}`")
         st.markdown(
             """
             - **R²** measures how much of the variation in SOH the model explains.  

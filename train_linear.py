@@ -46,8 +46,10 @@ df.columns = df.columns.str.strip()
 # find the exact target column name in a case-insensitive way
 target_norm = args.target.strip().lower()
 cols_lower = df.columns.str.strip().str.lower()
+# validate that the target column exists
 if target_norm not in set(cols_lower):
     raise ValueError(f"Target column '{args.target}' not found in CSV columns: {list(df.columns)}")
+# get the exact column name as in the dataframe
 target_col = df.columns[cols_lower == target_norm][0]
 
 # set y to the chosen target and start X as "all other columns"
